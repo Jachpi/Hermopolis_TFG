@@ -5,7 +5,7 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-VIDEO_PATH = "input_video.mp4"
+VIDEO_PATH = "clip.mp4"
 MODEL_PATH = "pose_landmarker_heavy.task"
 '''El .task contiene:
 - Un modelo preentrenado .tflite
@@ -42,6 +42,22 @@ class PoseGraphExtractor:
         .tflite de Google Tensorflow ya entrenado.'''
         self.graph_sequence = []
 
+        self.keep = [
+            0,
+            11,12,
+            13,14,
+            15,16,
+            19,20,
+            21,22,
+            23,24,
+            25,26,
+            27,28,
+            31,32
+        ]
+
+        # Para calcular el centro craneal después (ojo izq, ojo der, oreja izq, oreja der)
+        self.aux_nodes = [2,5,7,8]
+
         # Conectividad estándar BlazePose (33 landmarks)
         self.edges = [
             (11, 13), (13, 15),
@@ -53,13 +69,31 @@ class PoseGraphExtractor:
             (24, 26), (26, 28),
             (27, 31), (28, 32)
         ]
+
+        self.edges = [(i, j) for (i, j) in self.edges if i in self.keep and j in self.keep]
+
         '''BlazePose cuenta con múltiples nodos. Aquí ponemos las aristas que queremos mostrar
         y detectar. Ej: 11 -> hombo izquierdo; 13 -> codo izquierdo. "(11,13)" Genera una arista entre
         esos dos nodos.
         
-        Más info: https://chromium.googlesource.com/chromium/src/%2B/HEAD/third_party/mediapipe/src/mediapipe/modules/pose_landmark/pose_landmark_cpu.pbtxt
+        Más info: 
+        https://chromium.googlesource.com/chromium/src/%2B/HEAD/third_party/mediapipe/src/mediapipe/modules/pose_landmark/pose_landmark_cpu.pbtxt
 
         '''
+    def find_head_center(self, landmarks):
+        left_eye = landmarks[2]
+        right_eye = landmarks[5]        
+        eye_mediatriz = np.array([(left_eye.x + right_eye.x)/2, (left_eye.y + right_eye.y)/2, (left_eye.z + right_eye.z)/2])
+
+        left_ear = landmarks[7]
+        right_ear = landmarks[8]
+        ear_mediatriz = np.array([(left_ear.x + right_ear.x)/2, (left_ear.y + right_ear.y)/2, (left_ear.z + right_ear.z)/2])
+
+        # TODO: CONTINUAR LA APROXIMACIÓN DEL CENTRO DE LA CABEZA
+
+
+
+
 
     def draw_graph(self, frame, landmarks):
 
@@ -78,10 +112,11 @@ class PoseGraphExtractor:
                 cv2.line(frame, (xi, yi), (xj, yj), (0, 255, 0), 2)
 
         # Dibujar nodos
-        for idx, lm in enumerate(landmarks):
+        for i in self.keep:
+            lm = landmarks[i]
             x = int(lm.x * w)
             y = int(lm.y * h)
-            cv2.circle(frame, (x, y), 4, (0, 0, 255), -1)
+            cv2.circle(frame, (x,y), 1, (0, 0, 255), -1)
 
         return frame
 
@@ -108,7 +143,7 @@ class PoseGraphExtractor:
                 exit = True
             else:
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) # Mediapipe usa imágenes RGB, OpenCV usa BGR. Por suerte, existe esta función para convertir entre ambos formatos.
-
+    
                 mp_image = mp.Image(
                     image_format=mp.ImageFormat.SRGB,
                     data=rgb_frame
@@ -122,7 +157,8 @@ class PoseGraphExtractor:
                     landmarks = result.pose_landmarks[0]
                     # Guardar grafo
                     nodes = {}
-                    for i, lm in enumerate(landmarks):
+                    for i in self.keep:
+                        lm = landmarks[i]
                         nodes[i] = {
                             "x": lm.x,
                             "y": lm.y,
