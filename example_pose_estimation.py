@@ -54,9 +54,10 @@ class PoseGraphExtractor:
             27,28,
             31,32
         ]
+        self.HEAD = 33
+        self.head_node = None
 
         # Para calcular el centro craneal después (ojo izq, ojo der, oreja izq, oreja der)
-        self.aux_nodes = [2,5,7,8]
 
         # Conectividad estándar BlazePose (33 landmarks)
         self.edges = [
@@ -81,19 +82,40 @@ class PoseGraphExtractor:
 
         '''
     def find_head_center(self, landmarks):
-        left_eye = landmarks[2]
-        right_eye = landmarks[5]        
-        eye_mediatriz = np.array([(left_eye.x + right_eye.x)/2, (left_eye.y + right_eye.y)/2, (left_eye.z + right_eye.z)/2])
 
         left_ear = landmarks[7]
         right_ear = landmarks[8]
-        ear_mediatriz = np.array([(left_ear.x + right_ear.x)/2, (left_ear.y + right_ear.y)/2, (left_ear.z + right_ear.z)/2])
 
-        # TODO: CONTINUAR LA APROXIMACIÓN DEL CENTRO DE LA CABEZA
+        left_shoulder = landmarks[11]
+        right_shoulder = landmarks[12]
 
+        dx1 = right_ear.x - left_ear.x
+        dz1 = right_ear.z - left_ear.z
 
+        dx2 = right_shoulder.x - left_shoulder.x
+        dz2 = right_shoulder.z - left_shoulder.z
 
+        '''
+        tdx1 - udx2 = x3 - x1
+        tdz1 - udz2 = z3 - z1
 
+        siendo t y u los parámetros escalares que definen en qué punto de la recta nos encontramos.
+        '''
+
+        A = np.array([[dx1,-dx2],[dz1,-dz2]])
+        b = np.array([left_shoulder.x - left_ear.x, left_shoulder.z - left_ear.z])
+
+        det = np.linalg.det(A)
+        if abs(det) < 0.01:
+            # Las rectas generadas son paralelas prácticamente. Aproximar a la mediatriz de las orejas
+            return np.array([(left_ear.x+right_ear.x)/2, (left_ear.y+right_ear.y)/2, (left_ear.z+right_ear.z)/2])
+        
+        t, u = np.linalg.solve(A, b)
+
+        x_final = left_ear.x + t*dx1
+        z_final = left_ear.z + t*dz1
+
+        return np.array([x_final, (left_ear.y+right_ear.y)/2, z_final])
 
     def draw_graph(self, frame, landmarks):
 
@@ -108,7 +130,6 @@ class PoseGraphExtractor:
                 yi = int(landmarks[i].y * h)
                 xj = int(landmarks[j].x * w)
                 yj = int(landmarks[j].y * h)
-
                 cv2.line(frame, (xi, yi), (xj, yj), (0, 255, 0), 2)
 
         # Dibujar nodos
@@ -117,6 +138,11 @@ class PoseGraphExtractor:
             x = int(lm.x * w)
             y = int(lm.y * h)
             cv2.circle(frame, (x,y), 1, (0, 0, 255), -1)
+        # Dibujar cabeza
+        if self.head_node is not None:
+            x = int(self.head_node[0] * w)
+            y = int(self.head_node[1] * h)
+            cv2.circle(frame, (x, y), 1, (0,255,255), -1)
 
         return frame
 
@@ -165,7 +191,9 @@ class PoseGraphExtractor:
                             "z": lm.z,
                             "visibility": lm.visibility
                         }
-
+                    # Calcular cabeza y guardarlo en los nodos
+                    self.head_node = self.find_head_center(landmarks)
+                    nodes[self.HEAD] = {"x":float(self.head_node[0]), "y":float(self.head_node[1]), "z":float(self.head_node[2]),"visibility": 1.0}
                     graph_data = {
                         "frame_index": frame_idx,
                         "timestamp_ms": timestamp_ms,
