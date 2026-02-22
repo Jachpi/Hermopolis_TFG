@@ -1,96 +1,66 @@
+import json
 import numpy as np
 import open3d as o3d
 import time
 import os
 
-FILE_PATH = "../Segmented_Kinect/Segmented_Kinect/P01T02C03G08D02S01.txt"
+JSON_PATH = "pose_graph_sequence.json"
 FRAME_SPEED = 30
 
-if not os.path.isfile(FILE_PATH):
-    print("Archivo no encontrado.")
+if not os.path.isfile(JSON_PATH):
+    print("Archivo JSON no encontrado.")
     exit()
 
+# ==============================
+# Cargar JSON
+# ==============================
+with open(JSON_PATH, "r") as f:
+    graph_sequence = json.load(f)
+
+# Ordenar por frame_index por seguridad
+graph_sequence = sorted(graph_sequence, key=lambda x: x["frame_index"])
+
+print("Frames totales:", len(graph_sequence))
+
+# ==============================
+# Obtener lista fija de nodos
+# ==============================
+# Tomamos los nodos del primer frame como referencia
+first_nodes = graph_sequence[0]["nodes"]
+
+# IMPORTANTE: convertir claves a int y ordenarlas
+NODE_IDS = sorted([int(k) for k in first_nodes.keys()])
+
+# Crear mapa node_id -> índice consecutivo
+index_map = {node_id: idx for idx, node_id in enumerate(NODE_IDS)}
+
+print("Joints finales:", len(NODE_IDS))
+
+# ==============================
+# Construir array (frames, joints, 3)
+# ==============================
 data = []
 
-# ==============================
-# Índices que queremos conservar
-# ==============================
-KEEP = [
-    3,4,5,6,8,9,10,
-    12,13,14,15,
-    16,17,18,19,
-    21,22,23,24
-]
+for frame_data in graph_sequence:
+    nodes = frame_data["nodes"]
+    frame_points = []
 
-with open(FILE_PATH, "r") as f:
-    for line in f:
-        values = list(map(float, line.strip().split()))
-        coords = values[1:]
-        frame = np.array(coords).reshape(25, 3)
+    for node_id in NODE_IDS:
+        node = nodes[str(node_id)]  # las claves en JSON son string
+        frame_points.append([node["x"], -node["y"], node["z"]])
 
-        # Filtrar joints
-        frame = frame[KEEP]
-
-        data.append(frame)
+    data.append(frame_points)
 
 data = np.array(data)
 
-
-print("Frames totales:", data.shape[0])
-print("Joints finales:", data.shape[1])
+# ==============================
+# Obtener aristas y convertir índices
+# ==============================
+EDGES_OLD = graph_sequence[0]["edges"]
+EDGES = [(index_map[a], index_map[b]) for a, b in EDGES_OLD]
 
 # ==============================
-# Crear mapa antiguo -> nuevo índice
-# ==============================
-index_map = {old:new for new, old in enumerate(KEEP)}
-
-# ==============================
-# Definir aristas con índices antiguos
-# ==============================
-EDGES_OLD = [
-
-    # Hombros
-    (4,8),
-
-    # Tronco
-    (8,16),
-    (4,12),
-    (16,12),
-
-    # Brazo izquierdo
-    (4,5),
-    (5,6),
-
-    # Brazo derecho
-    (8,9),
-    (9,10),
-
-    # Pierna izquierda
-    (12,13),
-    (13,14),
-    (14,15),
-
-    # Pierna derecha
-    (16,17),
-    (17,18),
-    (18,19),
-
-    # Mano izquierda
-    (21,6),
-    (22,6),
-
-    # Mano derecha
-    (23,10),
-    (24,10),
-]
-
-# ==============================
-# Convertir a nuevos índices
-# ==============================
-EDGES = [(index_map[a], index_map[b]) for a,b in EDGES_OLD]
-
-# ==============================
-# Suavizado
+# Suavizado opcional
 # ==============================
 def smooth(data, window=5):
     smoothed = np.copy(data)
@@ -98,14 +68,14 @@ def smooth(data, window=5):
         smoothed[i] = np.mean(data[i-window:i], axis=0)
     return smoothed
 
-data = smooth(data, window=5)
+data = smooth(data, window=8)
 
 # ==============================
 # Visualización
 # ==============================
 vis = o3d.visualization.Visualizer()
 vis.create_window()
-vis.get_view_control().set_front([1,0,-1])
+vis.get_view_control().set_front([1, 0, -1])
 
 pcd = o3d.geometry.PointCloud()
 lines = o3d.geometry.LineSet()

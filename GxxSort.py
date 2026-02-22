@@ -2,51 +2,24 @@ import os
 import re
 import shutil
 
-SOURCE_DIR = r"../Segmented_C3D/Segmented_C3D"
+DIR = r"../Segmented_Kinect/Segmented_Kinect"
 
-# Imprimir dir actual
-print(f"Directorio actual: {os.getcwd()}")
+regex = re.compile(r"P..T..C..(G..)D..S..",re.IGNORECASE)
 
-pattern = re.compile(r"^P\d{2}T\d{2}C\d{2}(G\d{2})D\d{2}S\d{2}\.c3d$", re.IGNORECASE)
-
-def classify_c3d_files(source_dir):
-
-    if not os.path.isdir(source_dir):
-        raise ValueError("El directorio especificado no existe.")
-    
-    source_dir = os.path.abspath(source_dir)
-
-    #listar archivos en el directorio
-    files = os.listdir(source_dir)
-
-    print(files)
-
-    for file in files:
-        if not file.lower().endswith(".c3d"):
-            continue
-
-        match = pattern.match(file)
-
-        if match:
-            gesture_code = match.group(1)  # Extrae Gxx
-            target_folder = os.path.join(source_dir, gesture_code)
-
-            # Crear carpeta si no existe
-            os.makedirs(target_folder, exist_ok=True)
-
-            src_path = os.path.join(source_dir, file)
-            dst_path = os.path.join(target_folder, file)
-
-            # Evitar sobrescritura
-            if not os.path.exists(dst_path):
-                shutil.move(src_path, dst_path)
-                print(f"Movido: {file} → {gesture_code}/")
-            else:
-                print(f"Ya existe en destino, se omite: {file}")
-        else:
-            print(f"Nombre no válido, se ignora: {file}")
-
-    print("Clasificación completada.")
+def classify_kinect_txt(DIR="./"):
+    if os.path.exists(DIR) and os.path.isdir(DIR):
+        abs_path = os.path.abspath(DIR)
+        files = os.listdir(abs_path)
+        for f in files:
+            m = regex.match(f)
+            if f.lower().endswith(".txt") and m:
+                new_folder = os.path.join(abs_path,m.group(1))
+                os.makedirs(new_folder, exist_ok=True)
+                src_p = os.path.join(abs_path,f)
+                dst_p = os.path.join(new_folder,f)
+                if not os.path.exists(dst_p):
+                    shutil.move(src=src_p,dst=dst_p)
+    print("Clasificación completada")
 
 if __name__ == "__main__":
-    classify_c3d_files(SOURCE_DIR)
+    classify_kinect_txt(DIR)
