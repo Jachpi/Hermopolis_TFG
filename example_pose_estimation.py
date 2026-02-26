@@ -43,7 +43,6 @@ class PoseGraphExtractor:
         self.graph_sequence = []
 
         self.keep = [
-            0,
             11,12,
             13,14,
             15,16,
@@ -55,7 +54,9 @@ class PoseGraphExtractor:
             31,32
         ]
         self.HEAD = 33
+        self.SPINEBASE = 34
         self.head_node = None
+        self.spine_base_node = None
 
         # Para calcular el centro craneal después (ojo izq, ojo der, oreja izq, oreja der)
 
@@ -143,8 +144,17 @@ class PoseGraphExtractor:
             x = int(self.head_node[0] * w)
             y = int(self.head_node[1] * h)
             cv2.circle(frame, (x, y), 1, (0,255,255), -1)
-
+        # Dibujar spinebase
+        if self.spine_base_node is not None:
+            x = int(self.spine_base_node[0]*w)
+            y = int(self.spine_base_node[1]*h)
+            cv2.circle(frame, (x, y), 1, (255,0,0), -1)
         return frame
+
+    def find_spine_base(self, landmarks):
+        hip_left = landmarks[23]
+        hip_right = landmarks[24]
+        return np.array([(hip_left.x+hip_right.x)/2, (hip_left.y+hip_right.y)/2, (hip_left.z+hip_right.z)/2])
 
     def process_video(self, video_path, output_video_path):
 
@@ -194,6 +204,9 @@ class PoseGraphExtractor:
                     # Calcular cabeza y guardarlo en los nodos
                     self.head_node = self.find_head_center(landmarks)
                     nodes[self.HEAD] = {"x":float(self.head_node[0]), "y":float(self.head_node[1]), "z":float(self.head_node[2]),"visibility": 1.0}
+                    # Calcular spinebase y guardarlo en los nodos
+                    self.spine_base_node = self.find_spine_base(landmarks)
+                    nodes[self.SPINEBASE] = {"x":float(self.spine_base_node[0]), "y":float(self.spine_base_node[1]), "z":float(self.spine_base_node[2]),"visibility": 1.0}
                     graph_data = {
                         "frame_index": frame_idx,
                         "timestamp_ms": timestamp_ms,

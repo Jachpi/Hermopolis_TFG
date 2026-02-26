@@ -2,8 +2,9 @@ import numpy as np
 import open3d as o3d
 import time
 import os
+import json
 
-FILE_PATH = "../Segmented_Kinect/Segmented_Kinect/P01T02C03G08D02S01.txt"
+FILE_PATH = "../Segmented_Kinect/Segmented_Kinect/G08/P01T02C03G08D02S01.txt"
 FRAME_SPEED = 30
 
 if not os.path.isfile(FILE_PATH):
@@ -16,7 +17,7 @@ data = []
 # Índices que queremos conservar
 # ==============================
 KEEP = [
-    3,4,5,6,8,9,10,
+    0,3,4,5,6,8,9,10,
     12,13,14,15,
     16,17,18,19,
     21,22,23,24
@@ -98,7 +99,17 @@ def smooth(data, window=5):
         smoothed[i] = np.mean(data[i-window:i], axis=0)
     return smoothed
 
+
+
 data = smooth(data, window=5)
+
+for f in range(len(data)):
+    spine_base = data[f][0].copy()
+    print("spine_base ",spine_base)
+    for n in range(len(data[f])):
+        data[f][n] = data[f][n] - spine_base
+
+print(data)
 
 # ==============================
 # Visualización
