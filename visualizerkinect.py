@@ -31,7 +31,6 @@ with open(FILE_PATH, "r") as f:
 
         # Filtrar joints
         frame = frame[KEEP]
-
         data.append(frame)
 
 data = np.array(data)

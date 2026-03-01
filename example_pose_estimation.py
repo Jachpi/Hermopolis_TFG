@@ -178,12 +178,13 @@ class PoseGraphExtractor:
             if not ret:
                 exit = True
             else:
+                h, w, _ = frame.shape
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) # Mediapipe usa imágenes RGB, OpenCV usa BGR. Por suerte, existe esta función para convertir entre ambos formatos.
     
                 mp_image = mp.Image(
                     image_format=mp.ImageFormat.SRGB,
                     data=rgb_frame
-                ) # El formato de imagen que quiere Mediapipe. Es un wrapper de OpenCV.
+                ) # El formato de imagen que necesita Mediapipe. Es un wrapper de OpenCV.
 
                 timestamp_ms = int(cap.get(cv2.CAP_PROP_POS_MSEC))
 
@@ -193,6 +194,16 @@ class PoseGraphExtractor:
                     landmarks = result.pose_landmarks[0]
                     # Guardar grafo
                     nodes = {}
+
+                    # Calcular spinebase y guardarlo en los nodos
+                    self.spine_base_node = self.find_spine_base(landmarks)
+                    nodes[self.SPINEBASE] = {"x":float(self.spine_base_node[0]), "y":float(self.spine_base_node[1]), "z":float(self.spine_base_node[2]),"visibility": 1.0}
+                    
+                    # Calcular cabeza y guardarlo en los nodos
+                    self.head_node = self.find_head_center(landmarks)
+                    nodes[self.HEAD] = {"x":float(self.head_node[0]), "y":float(self.head_node[1]), "z":float(self.head_node[2]),"visibility": 1.0}
+                    
+                    # Guardar el resto de nodos existentes
                     for i in self.keep:
                         lm = landmarks[i]
                         nodes[i] = {
@@ -201,12 +212,6 @@ class PoseGraphExtractor:
                             "z": lm.z,
                             "visibility": lm.visibility
                         }
-                    # Calcular cabeza y guardarlo en los nodos
-                    self.head_node = self.find_head_center(landmarks)
-                    nodes[self.HEAD] = {"x":float(self.head_node[0]), "y":float(self.head_node[1]), "z":float(self.head_node[2]),"visibility": 1.0}
-                    # Calcular spinebase y guardarlo en los nodos
-                    self.spine_base_node = self.find_spine_base(landmarks)
-                    nodes[self.SPINEBASE] = {"x":float(self.spine_base_node[0]), "y":float(self.spine_base_node[1]), "z":float(self.spine_base_node[2]),"visibility": 1.0}
                     graph_data = {
                         "frame_index": frame_idx,
                         "timestamp_ms": timestamp_ms,

@@ -60,7 +60,7 @@ class CustomKinectConverter:
             data = json.load(d)
             translated_data = []
             for frame in data:
-                new_frame = {"frame_index": 0, "timestamp_ms": 0, "nodes": {}}
+                new_frame = {"frame_index": frame["frame_index"], "timestamp_ms": frame["timestamp_ms"], "nodes": {}}
                 for node in frame["nodes"]:
                     new_frame["nodes"][self.kinectnodes[self.nodetranslations[int(node)]]] = frame["nodes"][node]
                 translated_data.append(new_frame)
