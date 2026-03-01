@@ -5,23 +5,10 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-VIDEO_PATH = "clip.mp4"
-MODEL_PATH = "pose_landmarker_heavy.task"
-'''El .task contiene:
-- Un modelo preentrenado .tflite
-- Metadatos
-- Variables para configurar preprocesamiento
-- Variables para configurar postprocesamiento
-- Información del modelo usado
-'''
-OUTPUT_JSON = "pose_graph_sequence.json"
-OUTPUT_VIDEO = "pose_graph_overlay.mp4"
-
 
 class PoseGraphExtractor:
 
     def __init__(self, model_path):
-
         BaseOptions = mp.tasks.BaseOptions
         PoseLandmarker = vision.PoseLandmarker
         PoseLandmarkerOptions = vision.PoseLandmarkerOptions
@@ -71,17 +58,16 @@ class PoseGraphExtractor:
             (24, 26), (26, 28),
             (27, 31), (28, 32)
         ]
-
         self.edges = [(i, j) for (i, j) in self.edges if i in self.keep and j in self.keep]
 
         '''BlazePose cuenta con múltiples nodos. Aquí ponemos las aristas que queremos mostrar
         y detectar. Ej: 11 -> hombo izquierdo; 13 -> codo izquierdo. "(11,13)" Genera una arista entre
         esos dos nodos.
         
-        Más info: 
+        Más info:
         https://chromium.googlesource.com/chromium/src/%2B/HEAD/third_party/mediapipe/src/mediapipe/modules/pose_landmark/pose_landmark_cpu.pbtxt
-
         '''
+
     def find_head_center(self, landmarks):
 
         left_ear = landmarks[7]
@@ -156,7 +142,12 @@ class PoseGraphExtractor:
         hip_right = landmarks[24]
         return np.array([(hip_left.x+hip_right.x)/2, (hip_left.y+hip_right.y)/2, (hip_left.z+hip_right.z)/2])
 
-    def process_video(self, video_path, output_video_path):
+    def save_json(self, data, output_path):
+        with open(output_path, "w") as f:
+            json.dump(data, f, indent=2)
+        print(f"Grafo temporal guardado en: {output_path}")
+
+    def process_video(self, video_path, output_video_path=None):
 
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
@@ -166,11 +157,11 @@ class PoseGraphExtractor:
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v") # Para guardar cada frame añadiendo luego el grafo por encima. Es opcional
-        out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+        if output_video_path:
+            fourcc = cv2.VideoWriter_fourcc(*"mp4v") # Para guardar cada frame añadiendo luego el grafo por encima. Es opcional
+            out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
 
         frame_idx = 0
-
         exit = False
 
         while not exit:
@@ -218,29 +209,31 @@ class PoseGraphExtractor:
                         "nodes": nodes,
                         "edges": self.edges
                     }
-
                     self.graph_sequence.append(graph_data)
 
-                    # Dibujar grafo sobre frame
-                    frame = self.draw_graph(frame, landmarks)
+                    if output_video_path:
+                        # Dibujar grafo sobre frame
+                        frame = self.draw_graph(frame, landmarks)
 
-                out.write(frame)
+                if output_video_path:
+                    out.write(frame)
+
                 frame_idx += 1
 
         cap.release()
-        out.release()
+        if output_video_path:
+            out.release()
+            print(f"Vídeo con overlay guardado en: {output_video_path}")
 
-    def save_json(self, output_path):
-        with open(output_path, "w") as f:
-            json.dump(self.graph_sequence, f, indent=2)
-
+        return self.graph_sequence
 
 if __name__ == "__main__":
+    VIDEO_PATH = "clip.mp4"
+    MODEL_PATH = "pose_landmarker_heavy.task"
+    OUTPUT_JSON = "medianodes.json"
+    OUTPUT_VIDEO = "pose_graph_overlay.mp4"
 
     extractor = PoseGraphExtractor(MODEL_PATH)
-    extractor.process_video(VIDEO_PATH, OUTPUT_VIDEO)
-    extractor.save_json(OUTPUT_JSON)
-
+    data = extractor.process_video(VIDEO_PATH, OUTPUT_VIDEO)
+    extractor.save_json(data, OUTPUT_JSON)
     print("Proceso completado.")
-    print(f"Grafo temporal guardado en: {OUTPUT_JSON}")
-    print(f"Vídeo con overlay guardado en: {OUTPUT_VIDEO}")
