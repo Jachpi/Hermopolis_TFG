@@ -4,11 +4,12 @@ import time
 import os
 import json
 
-FILE_PATH = "../Segmented_Kinect/Segmented_Kinect/G08/P01T02C03G08D02S01.txt"
+FILE_PATH = "../Segmented_Kinect/Segmented_Kinect/G13/P11T02C05G13D01S01.txt"
 FRAME_SPEED = 30
 
 if not os.path.isfile(FILE_PATH):
     print("Archivo no encontrado.")
+    print(os.getcwd())
     exit()
 
 data = []

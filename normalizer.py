@@ -1,5 +1,7 @@
 import json
 import math
+import numpy as np
+import torch
 
 KEEP = [
     0,3,4,5,6,8,9,10,
@@ -41,7 +43,18 @@ def normalize(data):
     return data
 
 def to_st_gcn(data):
-    
+    T = len(data)
+    V = len(KEEP)
+    C = 3
+    stgcn_data = np.zeros((C,T,V))
+    for t, frame in enumerate(frame):
+        for n, node_id in enumerate(KEEP):
+            node = frame["nodes"][node_id]
+            stgcn_data[0,t,n] = node["x"]
+            stgcn_data[1,t,n] = node["y"]
+            stgcn_data[2,t,n] = node["z"]
+    tensor = torch.tensor(stgcn_data,dtype=torch.float32)
+    tensor = tensor.unsqueeze(-1)
 
 def save_json(data, output_path):
     with open(output_path, "w") as j:
