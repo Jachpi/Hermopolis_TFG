@@ -10,6 +10,9 @@ KEEP = [
     21,22,23,24
 ]
 
+T_MAX_A = 800   # Para las poses kinect de tipo G01-G12
+T_MAX_B = 1150  # Para las poses kinect de tipo G13. G13 al ser más grande en nº de frames, se procesará con un padding diferente al resto para que los demás no tengan excesivo padding.
+
 def normalize(data):
     # Calcular factor de escala a partir del primer frame (distancia spinebase->head)
 
@@ -42,19 +45,28 @@ def normalize(data):
 
     return data
 
-def to_st_gcn(data):
-    T = len(data)
+def to_st_gcn(data, t_max=None):
+    if not t_max:
+        T = len(data)
+    else:
+        T = t_max
+        
     V = len(KEEP)
     C = 3
-    stgcn_data = np.zeros((C,T,V))
-    for t, frame in enumerate(frame):
+
+    key_type = type(next(iter(data[0]["nodes"])))
+    
+    stgcn_data = np.zeros((C, T, V)) # t_max hará padding. Si no, len(data) dejará el clip tal cual.
+
+    for t, frame in enumerate(data):
         for n, node_id in enumerate(KEEP):
-            node = frame["nodes"][node_id]
+            node = frame["nodes"][key_type(node_id)]
             stgcn_data[0,t,n] = node["x"]
             stgcn_data[1,t,n] = node["y"]
             stgcn_data[2,t,n] = node["z"]
-    tensor = torch.tensor(stgcn_data,dtype=torch.float32)
-    tensor = tensor.unsqueeze(-1)
+
+    tensor = torch.tensor(stgcn_data,dtype=torch.float32).unsqueeze(-1)
+    return tensor
 
 def save_json(data, output_path):
     with open(output_path, "w") as j:

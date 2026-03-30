@@ -1,7 +1,32 @@
 import os
 import json
 
-BASE_DIR = "../Segmented_Kinect/Segmented_Kinect/"
+
+
+import random
+import torch
+
+
+res = random.choices(population=["train","val"],weights=[80,20],k=10)
+print(res)
+
+'''
+sample = torch.load("delete.pt", weights_only=True)
+
+tensor = sample["data"]   # shape: (C, T, V, 1)
+label  = sample["label"]  # entero
+
+output = {
+    "label": int(label),
+    "tensor_shape": list(tensor.shape),
+    "data": tensor.squeeze(-1).tolist()  # (C, T, V) como lista anidada, quitamos la dim M para que sea más legible
+}
+
+with open("output.txt", "w") as f:
+    json.dump(output, f, indent=2)
+
+print("Guardado en output.txt")'''
+'''BASE_DIR = "../Segmented_Kinect/Segmented_Kinect/"
 OUTPUT_PATH = "frame_distribution.json"
 
 frame_distribution = {}
@@ -59,3 +84,4 @@ print(f"Clip con más frames:   {max_frames[0]} → {max_frames[1]} frames")
 print(f"\nMedia de frames por carpeta:")
 for folder, stats in folder_stats.items():
     print(f"  {folder}: media={stats['media']} | min={stats['min']} | max={stats['max']} | clips={stats['num_clips']}")
+    '''
