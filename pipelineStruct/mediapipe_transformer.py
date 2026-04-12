@@ -129,12 +129,12 @@ class PoseGraphExtractor:
         if self.head_node is not None:
             x = int(self.head_node[0] * w)
             y = int(self.head_node[1] * h)
-            cv2.circle(frame, (x, y), 1, (0,255,255), -1)
+            cv2.circle(frame, (x, y), 1, (255, 0, 0), -1)
         # Dibujar spinebase
         if self.spine_base_node is not None:
             x = int(self.spine_base_node[0]*w)
             y = int(self.spine_base_node[1]*h)
-            cv2.circle(frame, (x, y), 1, (255,0,0), -1)
+            cv2.circle(frame, (x, y), 1, (0, 255, 255), -1)
         return frame
 
     def find_spine_base(self, landmarks):
@@ -229,7 +229,7 @@ class PoseGraphExtractor:
         return self.graph_sequence
 
 if __name__ == "__main__":
-    VIDEO_PATH = "clip2.mp4"
+    VIDEO_PATH = "../videos/clip2.mp4"
     MODEL_PATH = "pose_landmarker_heavy.task"
     OUTPUT_JSON = "medianodes.json"
     OUTPUT_VIDEO = "pose_graph_overlay.mp4"

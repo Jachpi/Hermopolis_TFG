@@ -2,7 +2,7 @@ import os
 import re
 import shutil
 
-DIR = r"../Segmented_Kinect/Segmented_Kinect"
+DIR = r"../../Segmented_Kinect/Segmented_Kinect"
 
 regex = re.compile(r"P..T..C..(G..)D..S..",re.IGNORECASE)
 

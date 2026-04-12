@@ -63,7 +63,7 @@ def to_st_gcn(data, t_max=None):
             node = frame["nodes"][key_type(node_id)]
             stgcn_data[0,t,n] = node["x"]
             stgcn_data[1,t,n] = node["y"]
-            stgcn_data[2,t,n] = node["z"]
+            # stgcn_data[2] se deja a 0: el eje Z es incompatible entre Kinect y MediaPipe
 
     tensor = torch.tensor(stgcn_data,dtype=torch.float32).unsqueeze(-1)
     return tensor

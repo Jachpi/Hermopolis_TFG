@@ -8,7 +8,7 @@ parser.add_argument("--input", required=True)
 parser.add_argument("--output", required=True)
 parser.add_argument("--type", required=True)
 parser.add_argument("--wPadding", action="store_true")
-parser.add_argument("--taichiType")
+parser.add_argument("--wCheckpoint", required=False)
 args = parser.parse_args()
 
 INPUT_PATH = args.input
@@ -17,8 +17,6 @@ INPUT_FLAG = args.type # Sólo puede ser o --type mediapipe o bien --type kinect
 
 # Se guardará en json
 if INPUT_FLAG == "mediapipe":
-    if not args.taichiType:
-        raise Exception("Para usar la transformación desde mediapipe, se debe usar --taichiType y definir el tipo de movimiento.")
     from mediapipe_transformer import PoseGraphExtractor
     import to_kinect_converter
     poseG = PoseGraphExtractor("pose_landmarker_heavy.task")
@@ -26,12 +24,37 @@ if INPUT_FLAG == "mediapipe":
     kinectizised_data = to_kinect_converter.convert_from_mediapipe(initial_data)
     normalized_data = normalizer.normalize(kinectizised_data)
     tensor = normalizer.to_st_gcn(normalized_data)
+    sample = {
+        "keypoint": tensor.permute(3, 1, 2, 0).numpy(),  # (C,T,V,M) → (M,T,V,C)
+        "label": -1,
+        "total_frames": len(normalized_data),
+    }
+    if args.wCheckpoint:
+        from mmaction2.mmaction.apis import init_recognizer, inference_recognizer
+        from mmaction2.mmaction.utils import register_all_modules
+        register_all_modules()
+        GESTURE_NAMES = [
+            'G01 - Beginning position (Wuji)',
+            'G02 - Tree posture (Taiji)',
+            'G03 - Open and close lotus flower',
+            'G04 - Bring sky and earth together',
+            'G05 - Canalize energy',
+            'G06 - Drive the monkey away',
+            'G07 - Move hands like clouds',
+            'G08 - Part the wild horse\'s mane',
+            'G09 - Golden rooster stands on one leg',
+            'G10 - Fair lady works shuttles',
+            'G11 - Kick with heel',
+            'G12 - Brush knee and twist step',
+            'G13 - Grasp the bird\'s tail'
+        ]
 
-    GESTURE_INDEX = args.taichiType
-
-    normalizer.save_json(normalized_data, OUTPUT)
-
-# Se recomienda guardar en .pt
+        config_file = '../mmaction2/configs/skeleton/stgcn/stgcn_taichi_jm.py'
+        model = init_recognizer(config_file, args.wCheckpoint, 'cuda:0')
+        result = inference_recognizer(model, sample)
+        scores = result.pred_score.tolist()
+        predicted_index = scores.index(max(scores))
+        print(f"Predicción: {GESTURE_NAMES[predicted_index]} (confianza: {max(scores):.4f})")
 elif INPUT_FLAG == "kinect":
     import kinect_transformer
 

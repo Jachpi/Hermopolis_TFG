@@ -4,7 +4,7 @@ import open3d as o3d
 import time
 import os
 
-JSON_PATH = "pose_graph_sequence.json"
+JSON_PATH = "medianodes.json"
 FRAME_SPEED = 30
 
 if not os.path.isfile(JSON_PATH):
