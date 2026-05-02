@@ -12,9 +12,13 @@ openmim>=0.3.9
 mmengine>=0.7.2
 mmdet>=3.0.0
 
+
 # Utilidades
 scipy
 einops
 decord>=0.4.1
+seaborn
+
+
 
 -r mmaction2/requirements.txt

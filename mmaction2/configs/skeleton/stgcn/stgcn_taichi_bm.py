@@ -10,22 +10,22 @@ dataset_type = 'PoseDataset'
 ann_file = 'data/skeleton/taichi_dataset.pkl'  # ruta a tu pkl
 
 train_pipeline = [
-    dict(type='GenSkeFeat', dataset='taichi', feats=['j']),
-    dict(type='UniformSampleFrames', clip_len=100),
+    dict(type='GenSkeFeat', dataset='taichi', feats=['bm']),
+    dict(type='UniformSampleFrames', clip_len=500),
     dict(type='PoseDecode'),
     dict(type='FormatGCNInput', num_person=1),  # 1 persona, no 2
     dict(type='PackActionInputs')
 ]
 val_pipeline = [
-    dict(type='GenSkeFeat', dataset='taichi', feats=['j']),
-    dict(type='UniformSampleFrames', clip_len=100, num_clips=1, test_mode=True),
+    dict(type='GenSkeFeat', dataset='taichi', feats=['bm']),
+    dict(type='UniformSampleFrames', clip_len=500, num_clips=1, test_mode=True),
     dict(type='PoseDecode'),
     dict(type='FormatGCNInput', num_person=1),
     dict(type='PackActionInputs')
 ]
 test_pipeline = [
-    dict(type='GenSkeFeat', dataset='taichi', feats=['j']),
-    dict(type='UniformSampleFrames', clip_len=100, num_clips=10, test_mode=True),
+    dict(type='GenSkeFeat', dataset='taichi', feats=['bm']),
+    dict(type='UniformSampleFrames', clip_len=500, num_clips=10, test_mode=True),
     dict(type='PoseDecode'),
     dict(type='FormatGCNInput', num_person=1),
     dict(type='PackActionInputs')

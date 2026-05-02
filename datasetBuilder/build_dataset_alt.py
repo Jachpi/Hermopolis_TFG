@@ -38,7 +38,7 @@ for f in os.listdir(INPUT_PATH):
 
     #Nota. Éste es el formato que esperará ST-GCN
     sample = {
-        "keypoint": tensor.permute(3, 1, 2, 0).numpy(),  # (C,T,V,M) → (M,T,V,C)
+        "keypoint": tensor.permute(3, 1, 2, 0).numpy(),  # (C,T,V,M) -> (M,T,V,C)
         "label": gesture_index,
         "total_frames": len(normalized_data),
         "frame_dir": f  # nombre del archivo

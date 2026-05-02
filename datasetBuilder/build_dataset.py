@@ -9,8 +9,8 @@ import numpy as np
 import random
 import re
 
-INPUT_PATH = "../../Segmented_Kinect"  # ruta hasta el directorio con el dataset de Kinect (con los txt)
-OUTPUT_PKL = "../../Segmented_Kinect_pkl/taichi_dataset.pkl"  # archivo de salida con todos los clips
+INPUT_PATH = "../Segmented_Kinect"  # ruta hasta el directorio con el dataset de Kinect (con los txt)
+OUTPUT_PKL = "../Segmented_Kinect_pkl/taichi_dataset.pkl"  # archivo de salida con todos los clips
 
 dataset = {
     "split": {

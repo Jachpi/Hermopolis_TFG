@@ -50,7 +50,7 @@ def save_json(data, output_path):
     print(f"Datos Kinect guardados en: {output_path}")
 
 if __name__ == "__main__":
-    FILE_PATH = "../../Segmented_Kinect/Segmented_Kinect/G08/P01T02C03G08D02S01.txt"
+    FILE_PATH = "../otrosArchivos/P01T01C03G01D01S01.txt"
     OUTPUT_PATH = "kinectnodes.json"
 
     data = kinect_transform(FILE_PATH)
