@@ -69,7 +69,20 @@ class PoseGraphExtractor:
         '''
 
     def find_head_center(self, landmarks):
+        '''Calcula el centro geométrico de la cabeza en 3D.
 
+        Resuelve la intersección de dos rectas paramétricas: la que une las orejas
+        y la que une los hombros. Si las rectas son casi paralelas (det < 0.01),
+        devuelve la mediatriz de las orejas como aproximación.
+
+        Args:
+            landmarks (list): Lista de landmarks BlazePose con atributos
+                x, y, z normalizados en [0, 1].
+
+        Returns:
+            np.ndarray: Array [x, y, z] con las coordenadas del centro de la
+                cabeza. La componente Y es la media de las Y de ambas orejas.
+        '''
         left_ear = landmarks[7]
         right_ear = landmarks[8]
 
@@ -105,9 +118,18 @@ class PoseGraphExtractor:
         return np.array([x_final, (left_ear.y+right_ear.y)/2, z_final])
 
     def draw_graph(self, frame, landmarks):
+        '''Dibuja los nodos y aristas del grafo de pose sobre un frame BGR.
 
-        '''Dibuja los nodos y aristas definidos.'''
+        Args:
+            frame (np.ndarray): Imagen BGR de OpenCV sobre la que se dibuja.
+            landmarks (list): Lista de landmarks BlazePose con atributos x, y
+                normalizados en [0, 1].
 
+        Returns:
+            np.ndarray: El mismo frame con aristas (líneas verdes) y nodos
+                (círculos rojos para KEEP, azul para HEAD, amarillo para SPINEBASE)
+                dibujados encima.
+        '''
         h, w, _ = frame.shape
 
         # Dibujar aristas
@@ -138,17 +160,46 @@ class PoseGraphExtractor:
         return frame
 
     def find_spine_base(self, landmarks):
+        '''Calcula el SPINEBASE como punto medio de las dos caderas.
+
+        Args:
+            landmarks (list): Lista de landmarks BlazePose. Se usan los índices
+                23 (cadera izquierda) y 24 (cadera derecha).
+
+        Returns:
+            np.ndarray: Array [x, y, z] con las coordenadas del SPINEBASE.
+        '''
         hip_left = landmarks[23]
         hip_right = landmarks[24]
         return np.array([(hip_left.x+hip_right.x)/2, (hip_left.y+hip_right.y)/2, (hip_left.z+hip_right.z)/2])
 
     def save_json(self, data, output_path):
+        '''Almacena la secuencia de frames en JSON.
+
+        Args:
+            data (list[dict]): Secuencia de frames generada por process_video.
+            output_path (str): Ruta del archivo JSON de salida.
+        '''
         with open(output_path, "w") as f:
             json.dump(data, f, indent=2)
         print(f"Grafo temporal guardado en: {output_path}")
 
     def process_video(self, video_path, output_video_path=None):
+        '''Procesa un vídeo y extrae la secuencia de grafos de pose con MediaPipe.
 
+        Por cada frame con detección exitosa calcula SPINEBASE y HEAD como nodos
+        adicionales y registra el resto de nodos BlazePose definidos en KEEP.
+
+        Args:
+            video_path (str): Ruta al archivo de vídeo de entrada.
+            output_video_path (str, optional): Si se indica, genera un vídeo con
+                el grafo superpuesto sobre cada frame.
+
+        Returns:
+            list[dict]: Secuencia de frames, cada uno con las claves
+                frame_index (int), timestamp_ms (int), nodes
+                (dict {int: {x, y, z, visibility}}) y edges (list[tuple]).
+        '''
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             raise RuntimeError("Cannot open video")

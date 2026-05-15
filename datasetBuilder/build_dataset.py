@@ -1,3 +1,16 @@
+'''Construye taichi_dataset_default.pkl a partir del directorio Segmented_Kinect.
+
+Lee todos los archivos .txt de capturas Kinect de INPUT_PATH, extrae el gesto
+de cada nombre de archivo, normaliza la secuencia y genera una
+anotación ST-GCN por clip. El split train/val se asigna aleatoriamente con
+proporción 80/20.
+
+El PKL resultante tiene el formato esperado por PoseDataset de MMAction2:
+    {
+        "split": {"train": [frame_dir, ...], "val": [frame_dir, ...]},
+        "annotations": [{"keypoint", "label", "total_frames", "frame_dir"}, ...]
+    }
+'''
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'pipelineStruct'))
@@ -10,7 +23,7 @@ import random
 import re
 
 INPUT_PATH = "../Segmented_Kinect"  # ruta hasta el directorio con el dataset de Kinect (con los txt)
-OUTPUT_PKL = "../Segmented_Kinect_pkl/taichi_dataset.pkl"  # archivo de salida con todos los clips
+OUTPUT_PKL = "../Segmented_Kinect_pkl/taichi_dataset_default.pkl"  # archivo de salida con todos los clips
 
 dataset = {
     "split": {

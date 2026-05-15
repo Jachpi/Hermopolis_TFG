@@ -1,3 +1,23 @@
+'''Pipeline de inferencia y preprocesado de gestos Taichi.
+
+Procesa un vídeo o archivo de captura Kinect y produce un tensor ST-GCN listo
+para entrenamiento o una predicción de gesto con un checkpoint entrenado.
+
+Modos (--type):
+    mediapipe   Extrae la pose con MediaPipe, convierte a Kinect, normaliza y
+                clasifica con --wCheckpoint.
+    mmpose      Extrae la pose 3D con MMPose/MotionBERT, normaliza y
+                clasifica con --wCheckpoint.
+    kinect      Lee un archivo .txt de captura Kinect, normaliza y guarda el
+                tensor en --output (obligatorio en este modo).
+
+Args CLI:
+    --input       Ruta al archivo de entrada (vídeo .mp4 o .txt Kinect).
+    --output      Ruta del tensor de salida .pt (obligatorio para --type kinect).
+    --type        Modo de extracción: mediapipe | mmpose | kinect.
+    --wCheckpoint Ruta a un checkpoint .pth para clasificar el gesto.
+    --wPadding    (Solo kinect) Aplica padding temporal al tensor.
+'''
 import sys
 sys.path.insert(0, '..')
 import argparse
@@ -7,15 +27,18 @@ import normalizer
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--input", required=True)
-parser.add_argument("--output", required=True)
-parser.add_argument("--type", required=True)
+parser.add_argument("--output", required=False)
+parser.add_argument("--type", required=True, choices=["mediapipe", "mmpose", "kinect"])
 parser.add_argument("--wPadding", action="store_true")
 parser.add_argument("--wCheckpoint", required=False)
 args = parser.parse_args()
 
 INPUT_PATH = args.input
 OUTPUT = args.output
-INPUT_FLAG = args.type # Sólo puede ser o --type mediapipe o bien --type kinect
+INPUT_FLAG = args.type
+
+if INPUT_FLAG == "kinect" and not OUTPUT:
+    parser.error("--type kinect requiere --output para guardar el tensor resultante")
 
 # Se guardará en json
 if INPUT_FLAG == "mediapipe":
@@ -52,7 +75,8 @@ if INPUT_FLAG == "mediapipe":
         ]
 
         config_file = '../mmaction2/configs/skeleton/stgcn/stgcn_taichi_jm.py'
-        model = init_recognizer(config_file, args.wCheckpoint, 'cuda:0')
+        device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+        model = init_recognizer(config_file, args.wCheckpoint, device)
         result = inference_recognizer(model, sample)
         scores = result.pred_score.tolist()
         predicted_index = scores.index(max(scores))
@@ -93,14 +117,12 @@ elif INPUT_FLAG == "mmpose":
             "label": -1,
             "total_frames": len(normalized_data),
         }
-        model = init_recognizer(config_file, args.wCheckpoint, 'cuda:0')
+        device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+        model = init_recognizer(config_file, args.wCheckpoint, device)
         result = inference_recognizer(model, sample)
         scores = result.pred_score.tolist()
         predicted_index = scores.index(max(scores))
         print(f"Prediccion: {GESTURE_NAMES[predicted_index]} (confianza: {max(scores):.4f})")
-    else:
-        torch.save({"data": tensor, "label": -1}, OUTPUT)
-        print(f"Tensor shape: {tensor.shape} | Guardado en {OUTPUT}")
 
 elif INPUT_FLAG == "kinect":
     import kinect_transformer

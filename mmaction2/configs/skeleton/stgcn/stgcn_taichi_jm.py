@@ -6,8 +6,9 @@ model = dict(
         type='STGCN', graph_cfg=dict(layout='taichi', mode='stgcn_spatial')),
     cls_head=dict(type='GCNHead', num_classes=13, in_channels=256))  # 13 gestos G01-G13
 
+import os
 dataset_type = 'PoseDataset'
-ann_file = 'data/skeleton/taichi_dataset.pkl'  # ruta a tu pkl
+ann_file = f'data/skeleton/taichi_dataset_{os.environ.get("TAICHI_DATASET", "default")}.pkl'
 
 train_pipeline = [
     dict(type='GenSkeFeat', dataset='taichi', feats=['jm']),

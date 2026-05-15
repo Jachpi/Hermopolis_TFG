@@ -9,6 +9,21 @@ KEEP = [
 ]
 
 def kinect_transform(file):
+    '''Parsea un archivo .txt de captura Kinect y lo convierte a una secuencia de frames.
+
+    Cada línea del archivo representa un frame. El primer campo es un timestamp
+    en milisegundos. Los siguientes 75 campos son las coordenadas tridimensionales de
+    los 25 nodos Kinect en ese orden, tal como los exporta el SDK de Kinect.
+
+    Args:
+        file (str): Ruta al archivo .txt generado por el SDK de Kinect.
+
+    Returns:
+        list[dict] | None: Lista de frames, cada uno con las claves
+            frame_index (int), timestamp_ms (int) y nodes
+            (dict {int: {x, y, z, visibility}}). Devuelve None si el
+            archivo no existe.
+    '''
     if not os.path.isfile(file):
         print("Archivo no encontrado")
         return None
@@ -45,6 +60,12 @@ def kinect_transform(file):
     return json_data
 
 def save_json(data, output_path):
+    '''Almacena la secuencia de frames a un archivo JSON.
+
+    Args:
+        data (list[dict]): Secuencia de frames generada por kinect_transform.
+        output_path (str): Ruta del archivo JSON de salida.
+    '''
     with open(output_path, "w") as j:
         json.dump(data, j, indent=2)
     print(f"Datos Kinect guardados en: {output_path}")

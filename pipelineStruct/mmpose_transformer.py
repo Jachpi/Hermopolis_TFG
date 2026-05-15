@@ -64,10 +64,20 @@ class MMPoseExtractor:
         }
  
     def build_nodes(self, kpts):
-        
-        '''
-        Construye el diccionario de nodos taichi a partir de los keypoints de Human3.6M.
-        kpts: lista de 17 elementos, cada uno [x, y, z] en metros.
+        '''Construye el diccionario de nodos Taichi a partir de keypoints Human3.6M.
+
+        Aplica el mapeo TAICHI_TO_H36M para traducir los 17 keypoints de
+        Human3.6M a los 20 índices del esqueleto Taichi (compatible con Kinect).
+        Los nodos sin equivalente directo (pies, manos) se aproximan con el nodo
+        más cercano disponible.
+
+        Args:
+            kpts (list): Lista de 17 elementos, cada uno [x, y, z] en metros,
+                en el orden definido por Human3.6M.
+
+        Returns:
+            dict: Diccionario {taichi_idx: {x, y, z, visibility}} con los
+                20 nodos del esqueleto Taichi, todos con visibility=1.0.
         '''
         nodes = {}
  
@@ -84,13 +94,21 @@ class MMPoseExtractor:
 
 
     def smooth(self, data):
-        '''
-        Aplica un filtro de media movil sobre cada nodo a lo largo del tiempo.
+        '''Aplica un filtro de media móvil sobre la secuencia de poses.
 
-        Para cada nodo y cada eje (x, y, z), se calcula la media de los
+        Para cada nodo y cada eje (x, y, z) calcula la media de los
         smooth_window frames centrados en el frame actual. En los extremos
-        se usa padding de borde, repitiendo el primer o ultimo valor disponible
-        para no perder frames.
+        la ventana se recorta al rango disponible, sin padding artificial, por lo
+        que no se pierden frames ni se introducen valores fuera de rango.
+
+        Args:
+            data (list[dict]): Secuencia de frames con nodos indexados por IDs
+                Taichi, tal como devuelve process_video antes del suavizado.
+
+        Returns:
+            list[dict]: Secuencia suavizada con el mismo formato y número de
+                frames que la entrada. Si data está vacío o
+                smooth_window <= 1, devuelve data sin modificar.
         '''
         if len(data) == 0 or self.smooth_window <= 1:
             return data
@@ -139,12 +157,36 @@ class MMPoseExtractor:
 
 
     def save_json(self, data, output_path):
+        '''Almacena la secuencia de poses a un archivo JSON.
+
+        Args:
+            data (list[dict]): Secuencia de frames generada por ``process_video``.
+            output_path (str): Ruta del archivo JSON de salida.
+        '''
         with open(output_path, "w") as f:
             json.dump(data, f, indent=2)
         print(f"Grafo guardado en: {output_path}")
 
     def process_video(self, video_path):
+        '''Procesa un vídeo y extrae la secuencia de poses 3D con MMPose MotionBERT.
 
+        Utiliza MMPoseInferencer en modo human3d para estimar poses
+        frame a frame. Si un frame no produce detección, se reutilizan los
+        keypoints del último frame válido; los frames anteriores al primer
+        resultado válido se descartan. Al finalizar aplica el suavizado
+        temporal definido en smooth_window.
+
+        Args:
+            video_path (str): Ruta al archivo de vídeo de entrada.
+
+        Returns:
+            list[dict]: Secuencia suavizada de frames, cada uno con las claves
+                frame_index (int), timestamp_ms (int) y nodes
+                (dict {taichi_idx: {x, y, z, visibility}}).
+
+        Raises:
+            RuntimeError: Si el vídeo no se puede abrir con OpenCV.
+        '''
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             raise RuntimeError(f"No se pudo abrir el video: {video_path}")

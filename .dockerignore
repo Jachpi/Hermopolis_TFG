@@ -1,0 +1,21 @@
+# Archivos que no deben entrar en la imagen
+videos/
+otrosArchivos/
+datasetBuilder/
+visualizadores/
+
+# Directorios de mmaction2 que no hacen falta en runtime
+mmaction2/tests/
+mmaction2/docs/
+mmaction2/demo/
+mmaction2/resources/
+mmaction2/work_dirs/
+
+# Bytecode Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# Control de versiones y logs
+.git/
+*.log

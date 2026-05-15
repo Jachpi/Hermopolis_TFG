@@ -11,6 +11,21 @@ KEEP = [
 ]
 
 def normalize(data):
+    '''Normaliza la secuencia de poses centrando en SPINEBASE y escalando por la distancia SPINEBASE-HEAD.
+
+    La distancia euclidiana entre SPINEBASE (nodo 0) y HEAD (nodo 3) del primer
+    frame se usa como factor de escala global. En cada frame todos los nodos se
+    trasladan para que SPINEBASE quede en el origen (0, 0, 0) y se dividen por
+    dicho factor. Soporta claves de nodo tanto int como str.
+
+    Args:
+        data (list[dict]): Secuencia de frames con nodos en coordenadas absolutas.
+            Compatible con la salida de kinect_transformer, mmpose_transformer y
+            to_kinect_converter.
+
+    Returns:
+        list[dict]: La misma lista modificada en sitio con coordenadas normalizadas.
+    '''
     # Calcular factor de escala a partir del primer frame (distancia spinebase->head)
 
     k0 = type(next(iter(data[0]["nodes"])))(0) # El json de nodos puede tener keys en formato string o int. Esto elimina esta posible ambigüedad.
@@ -43,6 +58,21 @@ def normalize(data):
     return data
 
 def to_st_gcn(data, t_max=None):
+    '''Convierte una secuencia de frames normalizada a un tensor ST-GCN.
+
+    Selecciona los nodos definidos en KEEP y los organiza en un tensor de cuatro
+    dimensiones compatible con el formato de entrada de PoseDataset de MMAction2.
+    Si t_max es mayor que len(data), los frames sobrantes se rellenan con ceros
+    (padding temporal).
+
+    Args:
+        data (list[dict]): Secuencia de frames normalizada (salida de normalize).
+        t_max (int, optional): Longitud temporal fija. Si es None, T = len(data).
+
+    Returns:
+        torch.Tensor: Tensor de forma (C=3, T, V=20, M=1) con dtype float32,
+            donde C son los ejes x/y/z, T los frames, V los nodos y M=1 el número de personas.
+    '''
     if not t_max:
         T = len(data)
     else:
@@ -66,6 +96,12 @@ def to_st_gcn(data, t_max=None):
     return tensor
 
 def save_json(data, output_path):
+    '''Almacena la secuencia de frames normalizada a un archivo JSON.
+
+    Args:
+        data (list[dict]): Secuencia de frames a guardar.
+        output_path (str): Ruta del archivo JSON de salida.
+    '''
     with open(output_path, "w") as j:
         json.dump(data, j, indent=2)
     print(f"Datos normalizados guardados en: {output_path}")
