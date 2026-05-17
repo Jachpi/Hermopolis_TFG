@@ -2,9 +2,10 @@
 # Uso: sudo bash train.sh
 set -e
 
+BUILD_MODE=gpu
 if ! docker image inspect hermopolis_tfg:latest > /dev/null 2>&1; then
     echo "Imagen hermopolis_tfg no encontrada."
-    echo "¿Con qué modo construirla?"
+    echo "¿Con qué modo ejecutarla?"
     echo "  1) gpu  (requiere NVIDIA + drivers CUDA)"
     echo "  2) cpu"
     read -p "Opción [1/2, por defecto 1]: " mode_choice
@@ -12,8 +13,8 @@ if ! docker image inspect hermopolis_tfg:latest > /dev/null 2>&1; then
         2) BUILD_MODE=cpu ;;
         *) BUILD_MODE=gpu ;;
     esac
-    echo "Construyendo con MODE=${BUILD_MODE}..."
-    docker build --build-arg MODE="$BUILD_MODE" -t hermopolis_tfg "$(pwd)"
+    echo "Construyendo imagen..."
+    docker build -t hermopolis_tfg "$(pwd)"
 fi
 
 echo "Selecciona el dataset de entrenamiento:"
@@ -39,7 +40,12 @@ echo "  python tools/train.py configs/skeleton/stgcn/stgcn_taichi_b.py"
 echo "  python tools/train.py configs/skeleton/stgcn/stgcn_taichi.py"
 echo ""
 
-docker run -it --gpus all \
+GPU_FLAG=""
+if [ "$BUILD_MODE" = "gpu" ]; then
+    GPU_FLAG="--gpus all"
+fi
+
+docker run -it $GPU_FLAG \
   -e TAICHI_DATASET="$TAICHI_DATASET" \
   -v "$WORK_DIRS":/workspace/Hermopolis_TFG/mmaction2/work_dirs \
   hermopolis_tfg \
